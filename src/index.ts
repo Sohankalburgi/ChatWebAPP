@@ -3,7 +3,7 @@ import  http from 'http';
 import { IncomingMessage, SupportMessage } from './messages/incomingMessages';
 import { UserManager } from './UserManagement';
 import { InMemoryStore } from './store/InMemoryStore';
-import { OutgoingMessage, SupportMessage as OutgoingSupportMessages } from '../src/messages/outgoingMessages'
+import { OutgoingMessage, SupportMessage as OutgoingSupportMessages } from './messages/outgoingMessages'
 
 var server = http.createServer(function(request:any, response:any) {
     console.log((new Date()) + ' Received request for ' + request.url);
@@ -45,7 +45,7 @@ wsServer.on('request', function(request) {
                 console.log("indie with message ",message.utf8Data);
                 messageHandler(connection,JSON.parse(message.utf8Data));
             }catch(e) {
-
+                console.error(e)
             }
             
             // console.log('Received Message ', message.utf8Data);
@@ -54,19 +54,20 @@ wsServer.on('request', function(request) {
         }
         
     });
-    connection.on('close', function(reasonCode, description) {
-        console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
-    });
+    
 });
 
 function messageHandler(ws : connection,message : IncomingMessage){
     console.log("Incoming message ",JSON.stringify(message))
+    
     if(message.type == SupportMessage.JoinRoom){
+        console.log('first')
         const payload = message.payload;
         userManager.addUser(payload.name,payload.userId,payload.roomId,ws);
     }
 
     if(message.type == SupportMessage.SendMessage){
+        console.log('second')
         const payload = message.payload;
         const user = userManager.getUser(payload.roomId,payload.userId);
         if(!user){
@@ -91,14 +92,15 @@ function messageHandler(ws : connection,message : IncomingMessage){
             }
         }
        
-        userManager.broadcast(payload.roomId,payload.userId,outgoingPayload)
+        userManager.broadcast(payload.roomId,payload.userId,outgoingPayload);
 
     }
 
     if(message.type == SupportMessage.UpvoteMessage){
+        console.log('third')
         const payload = message.payload;
         const chat = store.upvote(payload.userId,payload.roomId,payload.chatId);
-
+        console.log('the chat is from upvote',chat)
         if(!chat){
             return ;
         }
@@ -113,5 +115,36 @@ function messageHandler(ws : connection,message : IncomingMessage){
         }
 
         userManager.broadcast(payload.roomId,payload.userId,outgoingPayload);
+    }
+
+    if(message.type == SupportMessage.GetMessages){
+        console.log('fourth');
+        const payload = message.payload;
+        console.log('this is fourth ',message)
+        const chats = store.getChats(payload.roomId,payload.limit, payload.offset);
+        console.log(chats)
+        if(!chats){
+            return;
+        }
+
+        const outgoingPayloadChats:any = [];
+        chats.forEach((chatItem) => {
+            outgoingPayloadChats.push({
+                chatId : chatItem.id,
+                roomId : payload.roomId,
+                message : chatItem.message,
+                name : chatItem.userId,
+                upvotes : chatItem.upvotes.length,
+            })
+        })
+
+
+        const outgoingPayload : OutgoingMessage = {
+            type : OutgoingSupportMessages.GetChats,
+            payload : outgoingPayloadChats
+        }
+
+        userManager.broadcast(payload.roomId,payload.userId,outgoingPayload);
+
     }
 }

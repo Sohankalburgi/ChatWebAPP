@@ -23,16 +23,22 @@ export class InMemoryStore implements Store {
 
   getChats(roomId: string, limit: number, offset: number) {
     const room = this.store.get(roomId);
+    console.log("this is from the getchats",room)
     if(!room){
         return [];
     }
+    
     return room.chats.reverse().slice(0,offset).slice(-1 * limit);
   }
 
   addChat(userId: UserId,name: string, roomId: string, message: string) {
+    
+    if(!this.store.get(roomId)){
+      this.initRoom(roomId);
+    }
     const room = this.store.get(roomId);
     if(!room){
-        return null;
+        return;
     }
     const chat = {
       id : (globalchatId++).toString(),
@@ -46,6 +52,7 @@ export class InMemoryStore implements Store {
   }
 
   upvote(userId: UserId, roomId: string, chatId: string) {
+    
     const room = this.store.get(roomId);
     if(!room){
         return;
@@ -57,4 +64,5 @@ export class InMemoryStore implements Store {
     }
     return chat; 
   }
+
 }

@@ -28,4 +28,6 @@ export abstract class Store{
     upvote(userId: UserId, room: string, chatId: string){
 
     }
+
+  
 }

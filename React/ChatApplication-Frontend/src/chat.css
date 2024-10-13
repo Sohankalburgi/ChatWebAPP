@@ -1,0 +1,8 @@
+.background{
+    background-image: url('./assets/back.jpg');
+    z-index: -6;
+    background-size: cover; /* Optional: This ensures the image covers the entire area */
+    background-position: center; /* Optional: This centers the image */
+    height:750px ;
+
+}
